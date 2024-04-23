@@ -1,0 +1,306 @@
+---
+title: "lasthw"
+author: "Moneeb Abu-Esba"
+date: "2024-04-23"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+5. We have seen that we can ft an SVM with a non-linear kernel in order to perform classifcation using a non-linear decision boundary. We will now see that we can also obtain a non-linear decision boundary by performing logistic regression using non-linear transformations of the features. 9.7 Exercises 397
+(a) Generate a data set with n = 500 and p = 2, such that the observations belong to two classes with a quadratic decision boundary
+between them. For instance, you can do this as follows:
+rng = np.random.default_rng(5)
+x1 = rng.uniform(size=500) - 0.5
+x2 = rng.uniform(size=500) - 0.5
+```{r}
+set.seed(1)
+x1 = runif(500) - 0.5 
+x2 = runif(500) - 0.5
+y=1*(x1^2-x2^2>0)
+```
+
+(b) Plot the observations, colored according to their class labels. Your plot should display X1 on the x-axis, and X2 on the y-axis.
+```{r}
+plot(x1[y==0],x2[y==0],col="red",xlab="X1",ylab="X2")
+points(x1[y==1],x2[y==1],col="blue")
+
+```
+
+(c) Fit a logistic regression model to the data, using X1 and X2 as predictors.
+```{r}
+df=data.frame(x1 = x1, x2 = x2, y = as.factor(y))
+glm_fit=glm(y~.,data=df, family='binomial')
+```
+(d) Apply this model to the training data in order to obtain a predicted class label for each training observation. Plot the observations, colored according to the predicted class labels. The decision boundary should be linear.
+```{r}
+library(ggplot2)
+glm_prob=predict(glm_fit,newdata=df,type='response')
+glm_pred=ifelse(glm_prob>0.5,1,0)
+ggplot(data = df, mapping = aes(x1, x2)) +
+  geom_point(data = df, mapping = aes(colour = glm_pred))
+```
+(e) Now ft a logistic regression model to the data using non-linear functions of X1 and X2 as predictors (e.g. X21 , X1×X2, log(X2), and so forth).
+```{r}
+glm_fit_2=glm(y~poly(x1,2)+poly(x2,2),data=df,family='binomial')
+```
+
+(f) Apply this model to the training data in order to obtain a predicted class label for each training observation. Plot the observations, colored according to the predicted class labels. The decision boundary should be obviously non-linear. If it is not, then repeat (a)–(e) until you come up with an example in which the predicted class labels are obviously non-linear.
+```{r}
+glm_prob_2=predict(glm_fit_2,newdata=df,type='response')
+glm_pred_2=ifelse(glm_prob_2>0.5,1,0)
+ggplot(data = df, mapping = aes(x1, x2)) +
+  geom_point(data = df, mapping = aes(colour = glm_pred_2))
+```
+(g) Fit a support vector classifer to the data with X1 and X2 as predictors. Obtain a class prediction for each training observation. Plot the observations, colored according to the predicted class labels.
+```{r}
+library(e1071)
+svm_lin=svm(y~.,data=df,kernel='linear',cost=0.01)
+plot(svm_lin,df)
+```
+
+(h) Fit a SVM using a non-linear kernel to the data. Obtain a class prediction for each training observation. Plot the observations, colored according to the predicted class labels.
+```{r}
+svm_lin_2=svm(y~.,data=df,kernel='radial',gamma=1)
+plot(svm_lin_2,data=df)
+```
+
+(i) Comment on your results
+question h shows the non-linear boundry, the other methods did not find the linear boundry.
+
+7. In this problem, you will use support vector approaches in order to predict whether a given car gets high or low gas mileage based on the Auto data set.
+(a) Create a binary variable that takes on a 1 for cars with gas mileage above the median, and a 0 for cars with gas mileage below the median.
+```{r}
+attach(Auto)
+library(ggplot2)
+library(e1071)
+```
+```{r}
+mpg_med = median(Auto$mpg)
+bin.var = ifelse(Auto$mpg > mpg_med, 1, 0)
+Auto$mpglevel = as.factor(bin.var)
+```
+
+(b) Fit a support vector classifer to the data with various values of C, in order to predict whether a car gets high or low gas mileage. Report the cross-validation errors associated with diferent values of this parameter. Comment on your results. Note you will need to ft the classifer without the gas mileage variable to produce sensible results.
+```{r}
+set.seed(1)
+tune_out = tune(svm, mpg~., data = Auto, kernel = "linear", ranges = list(cost = c(0.01, 
+    0.1, 1, 5, 10, 100)))
+summary(tune_out)
+```
+
+(c) Now repeat (b), this time using SVMs with radial and polynomial basis kernels, with diferent values of gamma and degree and C. Comment on your results.
+```{r}
+set.seed(2)
+tune_out = tune(svm, mpg ~ ., data = Auto, kernel = "polynomial", ranges = list(cost = c(0.1, 
+    1, 5, 10), degree = c(2, 3, 4)))
+summary(tune_out)
+```
+
+(d) Make some plots to back up your assertions in (b) and (c). Hint: In the lab, we used the plot_svm() function for ftted SVMs. When p > 2, you can use the keyword argument features to create plots displaying pairs of variables at a time.
+```{r}
+set.seed(33)
+tune_out = tune(svm, mpg ~ ., data = Auto, kernel = "radial", ranges = list(cost = c(0.1, 
+    1, 5, 10), degree = c(2, 3, 4)))
+summary(tune_out)
+```
+```{r}
+svm_lin = svm(mpglevel ~ ., data = Auto, kernel = "linear", cost = 1)
+svm_poly = svm(mpglevel ~ ., data = Auto, kernel = "polynomial", cost = 10, 
+    degree = 2)
+svm_radial = svm(mpglevel ~ ., data = Auto, kernel = "radial", cost = 10, gamma = 0.01)
+plotpairs = function(fit) {
+    for (name in names(Auto)[!(names(Auto) %in% c("mpg", "mpglevel", "name"))]) {
+        plot(fit, Auto, as.formula(paste("mpg~", name, sep = "")))
+    }
+}
+plotpairs(svm_lin)
+```
+
+8. This problem involves the OJ data set which is part of the ISLP package.
+(a) Create a training set containing a random sample of 800 observations, and a test set containing the remaining observations.
+```{r}
+library(ISLR)
+attach(OJ)
+set.seed(1)
+train <- sample(nrow(OJ), 800)
+oj_train <- OJ[train, ]
+oj_test <- OJ[-train, ]
+```
+
+(b) Fit a support vector classifer to the training data using C = 0.01, with Purchase as the response and the other variables as predictors. How many support points are there?
+```{r}
+svc=svm(Purchase~.,data=oj_train,kernel='linear',cost=0.01)
+summary(svc)
+```
+(c) What are the training and test error rates?
+```{r}
+pred_train = predict(svc, oj_train)
+(t<-table(oj_train$Purchase, pred_train))
+```
+```{r}
+pred_test = predict(svc, oj_test)
+table(oj_test$Purchase, pred_test)
+```
+
+(d) Use cross-validation to select an optimal C. Consider values in the range 0.01 to 10.
+```{r}
+set.seed(1)
+tune_svc = tune(svm, Purchase ~ ., data = oj_train, kernel = "linear", ranges = list(cost = c(0.01,0.1,1,10)))
+summary(tune_svc)
+```
+
+(e) Compute the training and test error rates using this new value for C.
+```{r}
+svm_lin_1 = svm(Purchase ~ ., kernel = "linear", data = oj_train, cost = tune_out$best.parameters$cost)
+pred_train_1 = predict(svm_lin_1, oj_train)
+table(oj_train$Purchase, pred_train_1)
+```
+```{r}
+test_pred_1 = predict(svm_lin_1, oj_test)
+(t<-table(oj_test$Purchase, test_pred_1))
+```
+
+(f) Repeat parts (b) through (e) using a support vector machine with a radial kernel. Use the default value for gamma.
+```{r}
+set.seed(1)
+svm_rad_1 = svm(Purchase ~ ., data = oj_train, kernel = "radial")
+summary(svm_rad_1)
+```
+```{r}
+pred_train_2 = predict(svm_rad_1, oj_train)
+table(oj_train$Purchase, pred_train_2)
+```
+```{r}
+test_pred_2 = predict(svm_rad_1, oj_test)
+table(oj_test$Purchase, test_pred_2)
+```
+```{r}
+svm_rad_1 = svm(Purchase ~ ., data = oj_train, kernel = "radial", cost = tune_svc$best.parameters$cost)
+pred_train = predict(svm_rad_1, oj_train)
+table(oj_train$Purchase, pred_train_1)
+```
+```{r}
+test_pred_3 = predict(svm_rad_1, oj_test)
+(t<-table(oj_test$Purchase, test_pred_3))
+```
+
+
+(g) Repeat parts (b) through (e) using a support vector machine with a polynomial kernel. Set degree = 2.
+```{r}
+svm_pol_1 = svm(Purchase ~ ., kernel = "poly", data = oj_train, degree=2)
+summary(svm_pol_1)
+```
+```{r}
+pred_train_2 = predict(svm_pol_1, oj_train)
+(t<-table(oj_train$Purchase, pred_train_2))
+```
+```{r}
+test_pred_3 = predict(svm_pol_1, oj_test)
+(t<-table(oj_test$Purchase, test_pred_3))
+```
+```{r}
+set.seed(1)
+tune_svc = tune(svm, Purchase ~ ., data = oj_train, kernel = "poly", degree = 2, ranges = list(cost = 10^seq(-2, 1, by = 0.25)))
+summary(tune_svc)
+```
+(h) Overall, which approach seems to give the best results on this data?
+Linear basis seems to be the best
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
